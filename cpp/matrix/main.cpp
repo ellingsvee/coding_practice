@@ -1,5 +1,7 @@
 #include "SparseCSR.h"
 
+// clang++ - std = c++ 17 - o main SparseCSR.cpp main.cpp
+
 int main()
 {
     SparseCSR A(3, 3);

@@ -47,6 +47,7 @@ SparseCSR SparseCSR::multiply(const SparseCSR &other) const
 
     std::vector<std::unordered_map<int, double>> tempResult(rows);
 
+#pragma omp parallel for
     for (int i = 0; i < rows; ++i)
     {
         for (int j = rowPointers[i]; j < rowPointers[i + 1]; ++j)
@@ -59,11 +60,14 @@ SparseCSR SparseCSR::multiply(const SparseCSR &other) const
                 int colB = other.colIndices[k];
                 double valB = other.values[k];
 
+// Use critical section to ensure thread safety when updating tempResult[i]
+#pragma omp atomic
                 tempResult[i][colB] += valA * valB;
             }
         }
     }
 
+#pragma omp parallel for
     for (int i = 0; i < rows; ++i)
     {
         for (const auto &[col, val] : tempResult[i])
