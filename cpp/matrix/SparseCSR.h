@@ -18,6 +18,7 @@ public:
     void addValue(int row, int col, double value);
     void finalize();
     SparseCSR multiply(const SparseCSR &other) const;
+    SparseCSR multiplyMultithread(const SparseCSR &other) const;
     void print() const;
     void printDense() const;
 };

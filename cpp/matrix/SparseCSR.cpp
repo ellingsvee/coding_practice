@@ -1,6 +1,7 @@
 #include "SparseCSR.h"
 #include <unordered_map>
 #include <cassert>
+#include <thread>
 
 SparseCSR::SparseCSR(int rows, int cols) : rows(rows), cols(cols)
 {
@@ -69,6 +70,66 @@ SparseCSR SparseCSR::multiply(const SparseCSR &other) const
         {
             result.addValue(i, col, val);
         }
+    }
+
+    result.finalize();
+    return result;
+}
+
+SparseCSR SparseCSR::multiplyMultithread(const SparseCSR &other) const
+{
+    assert(cols == other.rows && "Matrix dimensions must match for multiplication.");
+
+    SparseCSR result(rows, other.cols);
+
+    // Set up the threads
+    int numThreads = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads;
+    int rowsPerThread = rows / numThreads;
+
+    // Lambda function to handle row processing in parallel
+    auto processRows = [&](int threadId)
+    {
+        int startRow = threadId * rowsPerThread;
+        int endRow = (threadId == numThreads - 1) ? rows : startRow + rowsPerThread;
+
+        for (int i = startRow; i < endRow; ++i)
+        {
+            for (int j = 0; j < other.cols; ++j)
+            {
+                double sum = 0.0;
+                for (int k = rowPointers[i]; k < rowPointers[i + 1]; ++k)
+                {
+                    int colA = colIndices[k];
+                    double valA = values[k];
+
+                    for (int l = other.rowPointers[colA]; l < other.rowPointers[colA + 1]; ++l)
+                    {
+                        int colB = other.colIndices[l];
+                        double valB = other.values[l];
+                        if (colB == j)
+                        {
+                            sum += valA * valB;
+                        }
+                    }
+                }
+                if (sum != 0.0)
+                {
+                    result.addValue(i, j, sum);
+                }
+            }
+        }
+    };
+
+    // Launch threads
+    for (int i = 0; i < numThreads; i++)
+    {
+        threads.push_back(std::thread(processRows, i));
+    }
+    // Wait for all threads to finish
+    for (auto &t : threads)
+    {
+        t.join();
     }
 
     result.finalize();
