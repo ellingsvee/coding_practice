@@ -1,2 +1,2 @@
 # c_practice
-Various scripts for when practicing the C programming language.
+Various scripts for when practicing the various languages.
